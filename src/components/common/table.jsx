@@ -1,6 +1,7 @@
 import React from "react";
 import TableHeader from "./tableHeader";
 import TableBody from "./tableBody";
+import { TableDiv } from "../scss/tableStyle";
 
 const Table = ({
   data,
@@ -12,7 +13,7 @@ const Table = ({
   onChange
 }) => {
   return (
-    <table className="table m-2">
+    <TableDiv>
       <TableHeader
         columns={columns}
         filters={filters}
@@ -22,7 +23,7 @@ const Table = ({
         onChange={onChange}
       />
       <TableBody data={data} columns={columns} />
-    </table>
+    </TableDiv>
   );
 };
 

@@ -2,29 +2,112 @@ import React, { Component } from "react";
 import surveyDataService from "../services/fakeDataService";
 import SurveyTable from "./surveyTable";
 import BarChart from "./common/barChart";
-import _ from "lodash";
 import utils from "../utils/utils";
+import _ from "lodash";
 
 class Survey extends Component {
   state = {
     data: [],
-    filters: {},
-    selectedData: []
+    filterOptions: {},
+    currentPage: 1,
+    pageSize: 20,
+    filters: { gender: [], favoriteFruit: [], favoriteColor: [] },
+    sortColumn: { path: "name", order: "asc" }
   };
 
   componentDidMount() {
     const data = surveyDataService.getSurveyData();
-    this.setState({ data });
+
+    this.setState({ data }, () => {
+      let filterOptions = this.getFilterAttributes(
+        Object.keys(this.state.filters)
+      );
+      this.setState({ filterOptions });
+    });
   }
 
+  /*    Handle states    */
   handleFilters = filters => {
-    // console.log("filters", filters);
-    this.setState({ filters });
+    this.setState({
+      filters,
+      currentPage: 1
+    });
   };
 
-  handleSelectedData = selectedData => {
-    console.log("selectedData", selectedData);
-    this.setState({ selectedData });
+  handleSort = sortColumn => {
+    this.setState({ sortColumn: sortColumn });
+  };
+
+  handlePageChange = (page, pageSize) => {
+    this.setState({ currentPage: page });
+  };
+
+  /*    Get filterOptions    */
+  orderFilterAttrsByAsc = array => {
+    return _.orderBy(array);
+  };
+
+  getFilterAttributes(properties) {
+    const { data } = this.state;
+    let results = {};
+
+    for (let property of properties) {
+      let attrs = data.map(item => _.get(item, property));
+      attrs = utils.removeDuplicate(attrs);
+      const result = this.orderFilterAttrsByAsc(attrs);
+      results[property] = result;
+    }
+
+    return results;
+  }
+
+  /*    Get selected data from the filters chosen    */
+  selectDataByFilter = (data, filters) => {
+    let selectedRecords = data;
+
+    let hasFilter = false;
+    for (let key in filters) {
+      let attrs = filters[key];
+      if (attrs.length !== 0) {
+        hasFilter = true;
+        let isInitial = true;
+        let lastResult = selectedRecords;
+        for (let value of attrs) {
+          if (isInitial) {
+            selectedRecords = selectedRecords.filter(
+              record => _.get(record, key) === value
+            );
+            isInitial = false;
+          } else
+            selectedRecords = selectedRecords.concat(
+              lastResult.filter(record => _.get(record, key) === value)
+            );
+        }
+      }
+    }
+
+    if (!hasFilter) selectedRecords = data;
+
+    return selectedRecords;
+  };
+
+  /*    Render Page Data    */
+  getPageData = (selectedRecords, sortColumn, pageSize, currentPage) => {
+    const sortedRecords = _.orderBy(
+      selectedRecords,
+      sortColumn.path,
+      sortColumn.order
+    );
+
+    const paginatedRecords = utils.paginate(
+      sortedRecords,
+      pageSize,
+      currentPage
+    );
+
+    const count = selectedRecords.length;
+
+    return { paginatedRecords, count };
   };
 
   getAttrCnt(arr) {
@@ -34,37 +117,76 @@ class Survey extends Component {
     }, {});
   }
 
-  getGenderCorrelationData(selectedData, genders, relatedAttrs) {
-    let results = {};
+  getGenderCorrelationData(selectedData, genders, relatedPath, relatedAttrs) {
+    let results = [];
 
     for (let gender of genders) {
       const data = selectedData.filter(item => item.gender === gender);
-      for (let relatedAttr of relatedAttrs) {
-        let attrs = data.map(item => _.get(item, relatedAttr));
-        results[gender] = this.getAttrCnt(attrs);
+      let attrs = data.map(item => _.get(item, relatedPath));
+      let attrCnt = this.getAttrCnt(attrs);
+      let result = {};
+      for (let value of relatedAttrs) {
+        result[value] = attrCnt[value];
       }
+      result["name"] = gender;
+      results.push(result);
     }
+
     return results;
   }
 
-  render() {
-    const { data, filters } = this.state;
+  getFilterForGraph(path) {
+    const { filters, filterOptions } = this.state;
+    const chosenOptions = _.get(filters, path);
+    const allOptions = _.get(filterOptions, path);
+    return chosenOptions.length === 0 ? allOptions : chosenOptions;
+  }
 
-    // const result = this.getGenderCorrelationData(
-    //   utils.selectDataByFilter(data, filters),
-    //   filters.gender,
-    //   filters.favoriteColor
-    // );
-    console.log(filters);
+  render() {
+    const {
+      data,
+      filters,
+      sortColumn,
+      pageSize,
+      currentPage,
+      filterOptions
+    } = this.state;
+
+    let selectedRecords = this.selectDataByFilter(data, filters);
+
+    let genderFilter = this.getFilterForGraph("gender") || [];
+    let favoriteColorFilter = this.getFilterForGraph("favoriteColor") || [];
+    let favoriteFruitFilter = this.getFilterForGraph("favoriteFruit") || [];
+
+    const sourceData = this.getGenderCorrelationData(
+      selectedRecords,
+      genderFilter,
+      "favoriteColor",
+      favoriteColorFilter
+    );
+
+    const { paginatedRecords, count } = this.getPageData(
+      selectedRecords,
+      sortColumn,
+      pageSize,
+      currentPage
+    );
 
     return (
       <div>
-        <BarChart />
         <SurveyTable
-          data={data}
-          onChange={this.handleFilters}
-          onSelectedData={this.handleSelectedData}
+          data={paginatedRecords}
+          onSort={this.handleSort}
+          currentPage={currentPage}
+          filters={filters}
+          pageSize={pageSize}
+          sortColumn={sortColumn}
+          filterOptions={filterOptions}
+          onFilterChange={this.handleFilters}
+          count={count}
+          onPageChange={this.handlePageChange}
         />
+        <BarChart sourceData={sourceData} fields={favoriteColorFilter} />
       </div>
     );
   }

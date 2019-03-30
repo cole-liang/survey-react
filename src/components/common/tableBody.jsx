@@ -10,17 +10,18 @@ class TableBody extends Component {
   render() {
     const { data, columns } = this.props;
     return (
-      <tbody>
+      // <div className="tbody">
+      <React.Fragment>
         {data.map(item => (
-          <tr key={item._id}>
+          <div className="tr" key={item._id}>
             {columns.map(column => (
-              <td key={column.path || column.key}>
+              <div className="td" key={column.path || column.key}>
                 {this.renderCell(item, column)}
-              </td>
+              </div>
             ))}
-          </tr>
+          </div>
         ))}
-      </tbody>
+      </React.Fragment>
     );
   }
 }

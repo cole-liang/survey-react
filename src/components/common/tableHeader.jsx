@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { Popover, Button, Checkbox } from "antd";
+import { Popover, Button, Checkbox, Icon } from "antd";
 
 const CheckboxGroup = Checkbox.Group;
 
@@ -36,6 +36,7 @@ class TableHeader extends Component {
     for (let key in filterOptions) {
       result[key] = (
         <CheckboxGroup
+          className="filterCheckBox"
           options={filterOptions[key]}
           onChange={e => this.onChange(e)}
         />
@@ -60,17 +61,16 @@ class TableHeader extends Component {
     const contents = this.renderCheckBox(filterOptions);
 
     return (
-      <thead>
-        <tr>
-          {columns.map(column => (
-            <React.Fragment>
-              <th
-                className="clickable"
-                key={column.path || column.key}
-                onClick={() => this.raiseSort(column.path)}
-              >
-                {column.label} {this.renderSortIcon(column)}
-              </th>
+      // <div className="thead">
+      <div className="tr">
+        {columns.map(column => (
+          <React.Fragment>
+            <div className="th" key={column.path || column.key}>
+              <div className="sort" onClick={() => this.raiseSort(column.path)}>
+                {column.label}
+                {this.renderSortIcon(column)}
+              </div>
+
               {Object.keys(filterOptions).find(
                 item => item === column.path
               ) && (
@@ -80,15 +80,18 @@ class TableHeader extends Component {
                   content={contents[column.path]}
                   trigger="click"
                 >
-                  <Button onClick={() => this.onClick(column.path)}>
-                    Bottom
-                  </Button>
+                  <div
+                    className="filter"
+                    onClick={() => this.onClick(column.path)}
+                  >
+                    <Icon type="filter" />
+                  </div>
                 </Popover>
               )}
-            </React.Fragment>
-          ))}
-        </tr>
-      </thead>
+            </div>
+          </React.Fragment>
+        ))}
+      </div>
     );
   }
 }

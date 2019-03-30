@@ -24,40 +24,8 @@ function paginate(items, pageSize, currentPage) {
     .value();
 }
 
-function selectDataByFilter(data, filters) {
-  let selectedRecords = data;
-  // console.log(filters);
-
-  let hasFilter = false;
-  for (let key in filters) {
-    let attrs = filters[key];
-    if (attrs.length !== 0) {
-      hasFilter = true;
-      let isInitial = true;
-      let lastResult = selectedRecords;
-      for (let value of attrs) {
-        if (isInitial) {
-          selectedRecords = selectedRecords.filter(
-            record => _.get(record, key) === value
-          );
-          isInitial = false;
-        } else
-          selectedRecords = selectedRecords.concat(
-            lastResult.filter(record => _.get(record, key) === value)
-          );
-      }
-    }
-  }
-
-  if (!hasFilter) selectedRecords = data;
-
-  // this.props.onSelectedData(selectedRecords);
-  return selectedRecords;
-}
-
 export default {
   compareStrings,
   removeDuplicate,
-  paginate,
-  selectDataByFilter
+  paginate
 };
