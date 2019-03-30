@@ -1,7 +1,6 @@
 import React, { Component } from "react";
 import { Pagination } from "antd";
 import Table from "./common/table";
-import _ from "lodash";
 
 class SurveyTable extends Component {
   state = {
@@ -30,8 +29,9 @@ class SurveyTable extends Component {
     const { columns } = this.state;
 
     return (
-      <React.Fragment>
+      <div>
         <Table
+          className="surveyTable"
           data={data}
           onSort={onSort}
           filters={filters}
@@ -41,12 +41,13 @@ class SurveyTable extends Component {
           columns={columns}
         />
         <Pagination
+          className="pagination"
           current={currentPage}
           pageSize={pageSize}
           total={count}
           onChange={onPageChange}
         />
-      </React.Fragment>
+      </div>
     );
   }
 }

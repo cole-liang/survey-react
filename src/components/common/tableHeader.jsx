@@ -1,11 +1,13 @@
 import React, { Component } from "react";
-import { Popover, Button, Checkbox, Icon } from "antd";
+import { Popover, Checkbox, Icon } from "antd";
+import SearchBox from "./searchBox";
 
 const CheckboxGroup = Checkbox.Group;
 
 class TableHeader extends Component {
   state = {
-    currentAttr: ""
+    currentAttr: "",
+    searchInput: ""
   };
 
   raiseSort(path) {
@@ -28,18 +30,29 @@ class TableHeader extends Component {
   }
 
   onClick = currentAttr => {
-    this.setState({ currentAttr });
+    this.setState({ currentAttr, searchInput: "" });
+  };
+
+  handleSearchChange = query => {
+    this.setState({ searchInput: query });
+  };
+
+  renderSearchBox = () => {
+    const { searchInput } = this.state;
+    return <SearchBox value={searchInput} onChange={this.handleSearchChange} />;
   };
 
   renderCheckBox = filterOptions => {
     let result = {};
     for (let key in filterOptions) {
       result[key] = (
-        <CheckboxGroup
-          className="filterCheckBox"
-          options={filterOptions[key]}
-          onChange={e => this.onChange(e)}
-        />
+        <React.Fragment>
+          <CheckboxGroup
+            className="filterCheckBox"
+            options={filterOptions[key]}
+            onChange={e => this.onChange(e)}
+          />
+        </React.Fragment>
       );
     }
     return result;
@@ -57,11 +70,20 @@ class TableHeader extends Component {
 
   render() {
     const { columns, filterOptions } = this.props;
-    const text = <span>Title</span>;
-    const contents = this.renderCheckBox(filterOptions);
+    const { currentAttr, searchInput } = this.state;
+
+    let tmpFilterOptions = { ...filterOptions };
+
+    tmpFilterOptions[currentAttr] = filterOptions[currentAttr]
+      ? filterOptions[currentAttr].filter(item =>
+          item.toLowerCase().startsWith(searchInput.toLowerCase())
+        )
+      : [];
+
+    const contents = this.renderCheckBox(tmpFilterOptions);
+    const searchBox = this.renderSearchBox();
 
     return (
-      // <div className="thead">
       <div className="tr">
         {columns.map(column => (
           <React.Fragment>
@@ -76,7 +98,7 @@ class TableHeader extends Component {
               ) && (
                 <Popover
                   placement="bottom"
-                  title={text}
+                  title={searchBox}
                   content={contents[column.path]}
                   trigger="click"
                 >

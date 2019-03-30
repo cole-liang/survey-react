@@ -10,7 +10,6 @@ class TableBody extends Component {
   render() {
     const { data, columns } = this.props;
     return (
-      // <div className="tbody">
       <React.Fragment>
         {data.map(item => (
           <div className="tr" key={item._id}>

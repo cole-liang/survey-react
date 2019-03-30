@@ -1,7 +1,7 @@
+import { TableDiv } from "../css/common/tableStyle";
 import React from "react";
 import TableHeader from "./tableHeader";
 import TableBody from "./tableBody";
-import { TableDiv } from "../scss/tableStyle";
 
 const Table = ({
   data,

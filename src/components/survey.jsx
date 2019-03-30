@@ -1,4 +1,6 @@
 import React, { Component } from "react";
+import { Card, Button, Input } from "antd";
+import { SurveyDiv, ControlDiv } from "./css/surveyStyle";
 import surveyDataService from "../services/fakeDataService";
 import SurveyTable from "./surveyTable";
 import BarChart from "./common/barChart";
@@ -10,9 +12,11 @@ class Survey extends Component {
     data: [],
     filterOptions: {},
     currentPage: 1,
-    pageSize: 20,
+    pageSize: 10,
+    pageSizeInput: "",
     filters: { gender: [], favoriteFruit: [], favoriteColor: [] },
-    sortColumn: { path: "name", order: "asc" }
+    sortColumn: { path: "name", order: "asc" },
+    order: ["table", "graph1", "graph2"]
   };
 
   componentDidMount() {
@@ -40,6 +44,20 @@ class Survey extends Component {
 
   handlePageChange = (page, pageSize) => {
     this.setState({ currentPage: page });
+  };
+
+  handleOrder = item => {
+    const { order } = this.state;
+    let tmpOrder = [...order];
+    tmpOrder.splice(tmpOrder.indexOf(item), 1);
+    tmpOrder = [item, ...tmpOrder];
+    this.setState({ order: tmpOrder });
+  };
+
+  handlePageSize = pageSizeInput => {
+    let pageSize = Number(pageSizeInput);
+    if (pageSize) this.setState({ pageSize });
+    this.setState({ pageSizeInput });
   };
 
   /*    Get filterOptions    */
@@ -91,7 +109,7 @@ class Survey extends Component {
     return selectedRecords;
   };
 
-  /*    Render Page Data    */
+  /*    Get page data fot the following rendering   */
   getPageData = (selectedRecords, sortColumn, pageSize, currentPage) => {
     const sortedRecords = _.orderBy(
       selectedRecords,
@@ -110,37 +128,19 @@ class Survey extends Component {
     return { paginatedRecords, count };
   };
 
-  getAttrCnt(arr) {
-    return arr.reduce(function(prev, next) {
-      prev[next] = prev[next] + 1 || 1;
-      return prev;
-    }, {});
-  }
-
-  getGenderCorrelationData(selectedData, genders, relatedPath, relatedAttrs) {
-    let results = [];
-
-    for (let gender of genders) {
-      const data = selectedData.filter(item => item.gender === gender);
-      let attrs = data.map(item => _.get(item, relatedPath));
-      let attrCnt = this.getAttrCnt(attrs);
-      let result = {};
-      for (let value of relatedAttrs) {
-        result[value] = attrCnt[value];
-      }
-      result["name"] = gender;
-      results.push(result);
-    }
-
-    return results;
-  }
-
-  getFilterForGraph(path) {
-    const { filters, filterOptions } = this.state;
-    const chosenOptions = _.get(filters, path);
-    const allOptions = _.get(filterOptions, path);
-    return chosenOptions.length === 0 ? allOptions : chosenOptions;
-  }
+  renderPageSizeInput = () => {
+    const { pageSizeInput } = this.state;
+    return (
+      <div className="pageSizeInput">
+        <span>Records per page:</span>
+        <Input
+          type="text"
+          value={pageSizeInput}
+          onChange={e => this.handlePageSize(e.currentTarget.value)}
+        />
+      </div>
+    );
+  };
 
   render() {
     const {
@@ -149,21 +149,11 @@ class Survey extends Component {
       sortColumn,
       pageSize,
       currentPage,
-      filterOptions
+      filterOptions,
+      order
     } = this.state;
 
     let selectedRecords = this.selectDataByFilter(data, filters);
-
-    let genderFilter = this.getFilterForGraph("gender") || [];
-    let favoriteColorFilter = this.getFilterForGraph("favoriteColor") || [];
-    let favoriteFruitFilter = this.getFilterForGraph("favoriteFruit") || [];
-
-    const sourceData = this.getGenderCorrelationData(
-      selectedRecords,
-      genderFilter,
-      "favoriteColor",
-      favoriteColorFilter
-    );
 
     const { paginatedRecords, count } = this.getPageData(
       selectedRecords,
@@ -173,21 +163,88 @@ class Survey extends Component {
     );
 
     return (
-      <div>
-        <SurveyTable
-          data={paginatedRecords}
-          onSort={this.handleSort}
-          currentPage={currentPage}
-          filters={filters}
-          pageSize={pageSize}
-          sortColumn={sortColumn}
-          filterOptions={filterOptions}
-          onFilterChange={this.handleFilters}
-          count={count}
-          onPageChange={this.handlePageChange}
-        />
-        <BarChart sourceData={sourceData} fields={favoriteColorFilter} />
-      </div>
+      <React.Fragment>
+        <ControlDiv>
+          <Button onClick={() => this.handleOrder("table")}>
+            Survey Table
+          </Button>
+          <Button onClick={() => this.handleOrder("graph1")}>
+            Correlation: Gender & Fruit
+          </Button>
+          <Button onClick={() => this.handleOrder("graph2")}>
+            Correlation: Gender & Color
+          </Button>
+        </ControlDiv>
+        <SurveyDiv order={order}>
+          <Card
+            id="surveyTable"
+            className="card cardForTable"
+            title="Table"
+            extra={this.renderPageSizeInput()}
+          >
+            <SurveyTable
+              data={paginatedRecords}
+              onSort={this.handleSort}
+              currentPage={currentPage}
+              filters={filters}
+              pageSize={pageSize}
+              sortColumn={sortColumn}
+              filterOptions={filterOptions}
+              onFilterChange={this.handleFilters}
+              count={count}
+              onPageChange={this.handlePageChange}
+            />
+          </Card>
+          <Card
+            id="surveyGraph1"
+            className="card cardForChart"
+            title="Correlation between gender and fruit"
+          >
+            <div className="horizontalGraph">
+              <BarChart
+                data={selectedRecords}
+                relatedPath="favoriteFruit"
+                filters={filters}
+                filterOptions={filterOptions}
+                position="horizontal"
+              />
+            </div>
+            <div className="verticalGraph">
+              <BarChart
+                data={selectedRecords}
+                relatedPath="favoriteFruit"
+                filters={filters}
+                filterOptions={filterOptions}
+                position="vertical"
+              />
+            </div>
+          </Card>
+          <Card
+            id="surveyGraph2"
+            className="card cardForChart"
+            title="Correlation between gender and color"
+          >
+            <div className="horizontalGraph">
+              <BarChart
+                data={selectedRecords}
+                relatedPath="favoriteColor"
+                filters={filters}
+                filterOptions={filterOptions}
+                position="horizontal"
+              />
+            </div>
+            <div className="verticalGraph">
+              <BarChart
+                data={selectedRecords}
+                relatedPath="favoriteColor"
+                filters={filters}
+                filterOptions={filterOptions}
+                position="vertical"
+              />
+            </div>
+          </Card>
+        </SurveyDiv>
+      </React.Fragment>
     );
   }
 }
